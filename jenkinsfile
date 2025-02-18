@@ -1,30 +1,24 @@
 pipeline {
-    agent { label 'jappbuildserver1' }	
-
-    tools {
-        // Install the Maven version configured as "M3" and add it to the path.
-        maven "maven_3.6.3"
-    }
+    agent { label 'slave1' }
 
 	environment {	
 		DOCKERHUB_CREDENTIALS=credentials('dockerlogin')
-	} 
-    
+	}
+	
     stages {
-        stage('SCM Checkout') {
+        stage('SCM_Checkout') {
             steps {
-                // Get some code from a GitHub repository
-                git 'https://github.com/chandini1209/star-agile-banking-finance'
-
+               echo "Perform SCM Checkout"
+			   git 'https://github.com/chandini1209/star-agile-banking-finance'			   
             }
-		}
-        stage('Maven Build') {
+        }
+        stage('Application Build') {
             steps {
-                // Run Maven on a Unix agent.
-                sh "mvn -Dmaven.test.failure.ignore=true clean package"
+                echo "Perform Application Build"
+				sh 'mvn clean package'
             }
-		}
-       stage("Docker build"){
+        }
+        stage('Build Docker Image') {
             steps {
 				sh 'docker version'
 				sh "docker build -t chandini964/bankapp-eta-app:${BUILD_NUMBER} ."
@@ -38,18 +32,17 @@ pipeline {
 				sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
 			}
 		}
-		stage('Push2DockerHub') {
-
+		stage('Publish_to_Docker_Registry') {
 			steps {
 				sh "docker push chandini964/bankapp-eta-app:latest"
 			}
 		}
-        stage('Deploy to Kubernetes Dev Environment') {
+        stage('Deploy to Kubernetes Cluster') {
             steps {
-		script {
-		sshPublisher(publishers: [sshPublisherDesc(configName: 'Kubernetes', transfers: [sshTransfer(cleanRemote: false, excludes: '', execCommand: 'kubectl apply -f kubernetes.yaml', execTimeout: 120000, flatten: false, makeEmptyDirs: false, noDefaultExcludes: false, patternSeparator: '[, ]+', remoteDirectory: '.', remoteDirectorySDF: false, removePrefix: '', sourceFiles: '*.yaml')], usePromotionTimestamp: false, useWorkspaceInPromotion: false, verbose: false)])
-		       }
+                script{
+                   sshPublisher(publishers: [sshPublisherDesc(configName: 'KMaster', transfers: [sshTransfer(cleanRemote: false, excludes: '', execCommand: 'kubectl apply -f kubernetes.yaml', execTimeout: 120000, flatten: false, makeEmptyDirs: false, noDefaultExcludes: false, patternSeparator: '[, ]+', remoteDirectory: '.', remoteDirectorySDF: false, removePrefix: '', sourceFiles: '*.yaml')], usePromotionTimestamp: false, useWorkspaceInPromotion: false, verbose: false)])
+                }
             }
-    	}
+        }
     }
 }
