@@ -14,7 +14,7 @@ pipeline {
         stage('SCM Checkout') {
             steps {
                 // Get some code from a GitHub repository
-                git 'https://github.com/LoksaiETA/BankingApp.git'
+                git 'https://github.com/chandini1209/star-agile-banking-finance'
 
             }
 		}
